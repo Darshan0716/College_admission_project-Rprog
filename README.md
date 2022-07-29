@@ -39,7 +39,12 @@ Descriptive:
 Categorize the average of grade point into High, Medium, and Low (with admission probability percentages) and plot it on a point chart.  
 Cross grid for admission variables with GRE Categorization is shown below:
 
+
+
 GRE	                  Categorized
+
 0-440	                Low
+
 440-580	              Medium
-580+	                High
+
+580+	                 High
