@@ -1,0 +1,210 @@
+
+
+
+#importing college admission data set
+
+d = read.csv("C:/Users/ADMIN/Documents/project/College_admission.csv",header=T)
+ head(d)
+d1 = d
+ 
+ #no of records
+ nrow(d)
+
+#datatype of columns
+ sapply(d, class)
+
+#converting columns to factor type
+ cols = c(1,4:7)
+ d[,cols]<-lapply(d[,cols], factor)
+ sapply(d,class)
+
+#count of missing values
+ sum(is.na(d))
+
+#summary of dataset
+ summary(d)
+
+#outlier detection
+ #for gre variable
+ iqr1=IQR(d$gre)
+ iqr1
+
+quantile(d$gre,na.rm=TRUE)
+
+maz1 = 660+1.5*iqr1
+ maz1
+
+min1= 520-1.5*iqr1
+ min1
+
+#all the pointers above the upperinner fence
+ print(which(d$gre > maz1))              #no outliers
+
+# all the pointers below the lowerinner fence
+ print(which(d$gre < min1))              #4 outliers
+
+# for gpa variables
+ iqr2= IQR(d$gpa)
+ iqr2
+
+quantile(d$gpa,na.rm=TRUE)
+
+max2 = 3.67+1.5*iqr2
+ max2
+
+min2 = 3.13-1.5*iqr2
+ min2
+
+# all the pointers above the upperinner fence
+ print(which(d$gpa > max2))                # no outlier
+
+print(which(d$gpa < min2))                # 1 outlier
+
+#removing outliers
+
+d=d[-c(72, 180, 290, 305, 316),]
+ nrow(d)
+
+#splitting of data set into train and test
+ 
+ set.seed(0)
+ library("caTools")
+
+set.seed(0)
+ library("caTools")
+ d[,2:3]=scale(d[,2:3])
+ split=sample.split(d$admit,SplitRatio = .75)
+ train=subset(d,split==T)
+ test=subset(d,split==F)
+
+#logistic regression
+ logit1=glm(admit~.,train,family='binomial')    #all variables
+summary(logit1)
+
+# in the above model gre,ses,gender_male and race variable are not significant
+ # building new model with only gpa rank variables
+ 
+ logit2=glm(admit~gpa+rank,train,family = 'binomial')       # all the variables
+ summary(logit2)
+
+ # Accuracy of logit model
+ 
+ predicted_val1 = predict(logit1,test,type="response")
+ 
+ test$pred_admit1= ifelse(predicted_val1>0.5,1,0)
+ 
+ #confusion matrix
+ 
+ conf_mat1=table(predicted=test$pred_admit1,actual=test$admit)
+ conf_mat1
+
+ # accuracy
+ accuracy1 = sum(diag(conf_mat1))/sum(conf_mat1)
+ accuracy1
+
+#svm
+
+library(e1071)
+ svm_clf = svm(admit ~ . ,train,type = 'C-classification', kernal = 'linear')
+ summary(svm_clf)
+
+#accuracy of svm
+ 
+ predicted_val2 = predict(svm_clf,test[-1])
+ predicted_val2
+
+#confusion matrix
+ 
+ conf_mat2= table(predicted=predicted_val2,actual=test$admit)
+ conf_mat2
+
+# accuracy
+ accuracy2 = sum(diag(conf_mat2))/sum(conf_mat2)
+ accuracy2
+
+## decision tree
+
+library("rpart")
+ library("rpart.plot")
+ nrow(train)
+ nrow(test)
+ 0.03*nrow(train)
+ 0.03*nrow(train)*3
+
+r.centrl=rpart.control(minsplit = 26,minbucket=9 , xavl = 5)
+ dec_clf = rpart(admit~.,control =r.centrl,data=train)
+ rpart.plot(dec_clf)
+ summary(dec_clf)
+
+#accuracy of decision tree
+ 
+ predicted_val3 = predict(dec_clf,test[-1],type="class")
+ predicted_val3
+
+#confusion matrix
+ 
+ conf_mat3 = table(predicted=predicted_val3,actual=test$admit)
+ conf_mat3
+
+#accuracy
+ 
+ accuracy3= sum(diag(conf_mat3))/sum(conf_mat3)
+ accuracy3
+
+#KNN and its accuracy
+ 
+ library("class")
+ knn = knn(train, test[-1],train$admit, k=19)
+ knn
+
+#confussion matrix
+ 
+ conf_mat4=table(predicted=knn,actual=test$admit)
+ conf_mat4
+
+# accuracy
+
+accuracy4= sum(diag(conf_mat4))/sum(conf_mat4)
+ accuracy4
+
+#naive bayes
+ 
+ nb=naiveBayes(admit~. ,data=train)
+ nb
+
+#accuracy of naive bayes
+
+predicted_val5 = predict(nb,test[-1],type="class")
+ predicted_val5
+
+# confusion matrix
+ conf_mat5=table(predicted=predicted_val5, acutal=test$admit)
+ conf_mat5
+
+# accuracy
+ accuray=sum(diag(conf_mat5))/sum(conf_mat5)
+ accuray
+
+## logistic and svm are the best model with accuracy above 60%
+## SVM model is the best model with accuracy of 69.69%
+## logistic model accuracy = 61.61%
+
+
+#Descriptiven Categorize the average of grade point into High, Medium, and Low
+
+Descriptive = transform(d1,GreLevels=ifelse(gre<440,"Low",ifelse(gre<580,"Medium","High")))
+ View(Descriptive)
+ Sum_Desc=aggregate(admit~GreLevels,Descriptive,FUN=sum)
+ length_Desc=aggregate(admit~GreLevels,Descriptive,FUN=length)
+ Probability_table = cbind(Sum_Desc,Recs=length_Desc[,2])
+ Probability_table_final = transform(Probability_table,Probability_Admission=admit/Recs)
+ Probability_table_final
+
+library("ggplot2")
+ ggplot(Probability_table_final,aes(x=GreLevels , y=Probability_Admission))+geom_point()
+ 
+ #Cross grid for admission variable with GRE categorized
+ 
+ table(Descriptive$admit,Descriptive$GreLevels)
+   
+
